@@ -1,0 +1,27 @@
+[project]
+name = "overmatch"
+version = "0.1.0"
+description = "A tool for matching Overture Maps data with OpenStreetMap elements and applying enriched tags to OSM."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "argparse>=1.4.0",
+    "atlus>=1.0.1",
+    "boto3>=1.42.34",
+    "botocore>=1.42.34",
+    "datetime>=6.0",
+    "duckdb>=1.4.3",
+    "fastapi>=0.128.0",
+    "geopandas>=1.1.2",
+    "mangum>=0.20.0",
+    "numpy>=2.4.1",
+    "obstore>=0.8.2",
+    "overturetoosm>=1.2.0",
+    "pandas>=3.0.0",
+    "pathlib>=1.0.1",
+    "pydantic>=2.12.5",
+    "rapidfuzz>=3.14.3",
+    "requests>=2.32.5",
+    "rtree>=1.4.1",
+    "tqdm>=4.67.1",
+]
