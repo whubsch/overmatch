@@ -129,7 +129,7 @@ if ! command -v aws &> /dev/null; then
 fi
 
 # Check if Python 3.12 is available
-if ! command -v venv/bin/python &> /dev/null; then
+if ! command -v uv run &> /dev/null; then
     echo -e "${RED}Error: Python 3.12 not found. Please install it first.${NC}" >&2
     exit 1
 fi
@@ -182,7 +182,7 @@ echo "==========================================================="
 echo ""
 
 # Run the Python upload script with proper arguments
-venv/bin/python "$PYTHON_SCRIPT" \
+uv run "$PYTHON_SCRIPT" \
     "$PMTILES_FILE" \
     --bucket "$BUCKET_NAME" \
     --key "$OBJECT_KEY" \

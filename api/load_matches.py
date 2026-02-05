@@ -117,7 +117,7 @@ def check_existing_items(
         Set of OSM IDs that already exist in the table
     """
     dynamodb = boto3.resource("dynamodb", region_name=region_name)
-    table = dynamodb.Table(table_name)
+    dynamodb.Table(table_name)
     existing = set()
 
     print("Checking for existing items (for resume capability)...")

@@ -128,7 +128,7 @@ eval $(aws configure export-credentials --format env 2>/dev/null || true)
 echo -e "${YELLOW}Running data loader...${NC}"
 echo ""
 
-venv/bin/python "$SCRIPT_DIR/load_matches.py" "$MATCHES_FILE" "$TABLE_NAME" "$AWS_REGION" $SKIP_EXISTING_FLAG
+uv run "$SCRIPT_DIR/load_matches.py" "$MATCHES_FILE" "$TABLE_NAME" "$AWS_REGION" $SKIP_EXISTING_FLAG
 
 EXIT_CODE=$?
 

@@ -9,6 +9,7 @@ Run from the root directory with:
 
 import subprocess
 import sys
+from pathlib import Path
 
 
 def run_script(scripts: list[str]) -> bool:
@@ -44,12 +45,27 @@ def run_script(scripts: list[str]) -> bool:
 
 
 def main():
+    # Determine the correct path to load-matches.sh based on current working directory
+    current_dir = Path.cwd()
+    script_dir = Path(__file__).parent
+
+    # Check if we're in the root directory or scripts directory
+    if (current_dir / "scripts").exists() and (current_dir / "api").exists():
+        # Running from root directory
+        load_matches_path = str(current_dir / "api" / "load-matches.sh")
+    elif script_dir.parent.name == "overmatch" or (script_dir.parent / "api").exists():
+        # Running from scripts directory
+        load_matches_path = str(script_dir.parent / "api" / "load-matches.sh")
+    else:
+        # Fallback to relative path
+        load_matches_path = "../api/load-matches.sh"
+
     # Define the scripts to run in order
     scripts = [
-        ["venv/bin/python", "-m", "scripts.get_osm_ids"],
-        ["venv/bin/python", "-m", "scripts.build_query"],
-        ["venv/bin/python", "-m", "scripts.match"],
-        ["../api/load-matches.sh"],
+        ["uv", "run", "-m", "scripts.get_osm_ids"],
+        ["uv", "run", "-m", "scripts.build_query"],
+        ["uv", "run", "-m", "scripts.match"],
+        [load_matches_path],
     ]
 
     print("Starting sequential script execution...")
