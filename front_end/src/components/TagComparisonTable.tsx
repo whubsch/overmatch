@@ -166,12 +166,18 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
       }
     });
 
-    // Sort: differences first, then by key name
+    // Sort: differences first, then overture-only, then by key name
     comparisons.sort((a, b) => {
       const aDiff = a.diffType[0] === "different";
       const bDiff = b.diffType[0] === "different";
       if (aDiff && !bDiff) return -1;
       if (!aDiff && bDiff) return 1;
+
+      const aOverture = a.diffType[0] === "overture-only";
+      const bOverture = b.diffType[0] === "overture-only";
+      if (aOverture && !bOverture) return -1;
+      if (!aOverture && bOverture) return 1;
+
       return a.key.localeCompare(b.key);
     });
 
