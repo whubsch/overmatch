@@ -109,6 +109,35 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
 
     const comparisons: TagComparison[] = [];
 
+    // Handle smart mapping: if OSM has contact:phone and we have phone,
+    // compare them together instead of treating as separate tags
+    const hasContactPhone = osmTags["contact:phone"] !== undefined;
+    const hasPhone = mergedOvertureTags["phone"] !== undefined;
+
+    if (hasContactPhone && hasPhone) {
+      // Map phone to contact:phone for comparison
+      const osmContactPhoneValue = osmTags["contact:phone"];
+      const overturePhoneValue = mergedOvertureTags["phone"];
+
+      let diffType: TagDiffType;
+      if (osmContactPhoneValue === overturePhoneValue) {
+        diffType = "same";
+      } else {
+        diffType = "different";
+      }
+
+      comparisons.push({
+        key: "contact:phone",
+        osmValue: osmContactPhoneValue,
+        overtureValues: [overturePhoneValue],
+        diffType: [diffType],
+      });
+
+      // Remove these keys from the set so they're not processed again
+      allKeys.delete("contact:phone");
+      allKeys.delete("phone");
+    }
+
     allKeys.forEach((key) => {
       const osmValue = osmTags[key];
       const overtureValue = mergedOvertureTags[key];
@@ -220,9 +249,17 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
 
     // Apply only selected Overture tags from merged tags
     selectedTags.forEach((key) => {
-      const value = mergedOvertureTags[key];
-      if (value !== undefined && value !== null) {
-        newTags[key] = String(value);
+      // Special case: contact:phone maps to our phone value
+      if (key === "contact:phone") {
+        const phoneValue = mergedOvertureTags["phone"];
+        if (phoneValue !== undefined && phoneValue !== null) {
+          newTags["contact:phone"] = String(phoneValue);
+        }
+      } else {
+        const value = mergedOvertureTags[key];
+        if (value !== undefined && value !== null) {
+          newTags[key] = String(value);
+        }
       }
     });
 
