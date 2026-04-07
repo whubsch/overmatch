@@ -6,6 +6,7 @@ import duckdb
 
 from .get_categories import get_subcategories
 from .get_latest_overture_release import get_latest_overture_release
+from .poi_types import get_all_poi_types, get_overture_categories
 
 # Start timing
 start_time = time.time()
@@ -18,12 +19,23 @@ division_id = "f39eb4af-5206-481b-b19e-bd784ded3f05"  # US
 
 confidence = 0.5
 
+# Build list of all Overture categories from registered POI types
+all_categories = []
+for poi_type in get_all_poi_types():
+    categories_for_type = get_overture_categories(poi_type)
+    all_categories.extend(categories_for_type)
+
+# Remove duplicates and get subcategories
+unique_categories = list(set(all_categories))
+print(f"POI types registered: {', '.join(get_all_poi_types())}")
+print(f"Overture level 2 categories: {', '.join(unique_categories)}")
+
 categories = ", ".join(
     [
         f"'{cat}'"
         for cat in get_subcategories(
             {
-                2: ["restaurant", "bar", "cafe"],
+                2: unique_categories,
             }
         )
     ]

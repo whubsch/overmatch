@@ -13,6 +13,8 @@ from rapidfuzz import fuzz
 from rtree import index
 from tqdm import tqdm
 
+from .poi_types import get_matching_rules
+
 start = datetime.now()
 
 
@@ -188,10 +190,22 @@ def find_matches_for_point(
     overture_layer: gpd.GeoDataFrame,
     preprocessed: dict,
     spatial_idx: index.Index,
+    poi_type: str = "restaurant",
     buffer_distance: float = 100,
     similarity_threshold: float = 0.6,
 ) -> list[dict]:
-    """Find matches for a single point - optimized version"""
+    """
+    Find matches for a single point - optimized version.
+
+    Args:
+        row_data: OSM feature data (from iterrows)
+        overture_layer: GeoDataFrame of Overture features
+        preprocessed: Preprocessed Overture data for fast access
+        spatial_idx: Spatial index for Overture features
+        poi_type: POI type name (e.g., 'restaurant', 'nail_salon')
+        buffer_distance: Search radius in meters
+        similarity_threshold: Name similarity threshold (0-1)
+    """
     matches = []
     row_prep = row_data[1]
     row: dict = {k: v for k, v in dict(row_prep).items() if v and v is not None}
@@ -367,11 +381,16 @@ def find_matches_for_point(
                 ):
                     candidate_tags.pop("website")
                 elif "website" in candidate_tags and candidate_tags["website"]:
-                    candidate_tags["website"] = lowercase_url(
+                    website_tag = lowercase_url(
                         remove_tracking_params_regex(candidate_tags["website"])
                         .replace("?&", "?")
                         .rstrip("?& ")
                     )
+                    if re.match(
+                        r"(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))",
+                        website_tag,
+                    ):
+                        candidate_tags["website"] = website_tag
 
             # Remove toll-free numbers
             if "phone" in candidate_tags and any(
@@ -449,6 +468,19 @@ def main():
         row_data = list(osm_layer.iterrows())
         logger.info(f"Prepared {len(row_data)} rows for processing")
 
+        # Get POI type (currently hardcoded to restaurant, can be made configurable)
+        poi_type = "restaurant"
+        matching_rules = get_matching_rules(poi_type)
+        if not matching_rules:
+            logger.error(f"No matching rules found for POI type: {poi_type}")
+            raise ValueError(f"POI type '{poi_type}' not configured")
+
+        buffer_distance = matching_rules.buffer_distance
+        similarity_threshold = matching_rules.similarity_threshold
+        logger.info(f"Using POI type: {poi_type}")
+        logger.info(f"  Buffer distance: {buffer_distance}m")
+        logger.info(f"  Similarity threshold: {similarity_threshold}")
+
         # Option 1: Sequential with progress bar (easier to debug)
         logger.info("Starting match processing...")
         matching_start = time.time()
@@ -458,7 +490,13 @@ def main():
         for data in tqdm(row_data, total=len(osm_layer), desc="Processing matches"):
             try:
                 matches = find_matches_for_point(
-                    data, overture_layer, preprocessed, spatial_idx
+                    data,
+                    overture_layer,
+                    preprocessed,
+                    spatial_idx,
+                    poi_type=poi_type,
+                    buffer_distance=buffer_distance,
+                    similarity_threshold=similarity_threshold,
                 )
                 all_matches.extend(matches)
             except Exception as e:
@@ -474,6 +512,8 @@ def main():
             logger.warning(f"Encountered {error_count} errors during processing")
 
         # Option 2: Parallel processing (uncomment to use)
+        # from multiprocessing import Pool, cpu_count
+        # from functools import partial
         # logger.info(f"Processing matches using {cpu_count()} cores...")
         # chunk_size = max(1, len(row_data) // (cpu_count() * 4))
         # chunks = [row_data[i:i + chunk_size] for i in range(0, len(row_data), chunk_size)]
@@ -481,7 +521,8 @@ def main():
         # process_func = partial(process_chunk,
         #                       overture_layer=overture_layer,
         #                       preprocessed=preprocessed,
-        #                       spatial_idx=spatial_idx)
+        #                       spatial_idx=spatial_idx,
+        #                       poi_type=poi_type)
         #
         # with Pool(cpu_count()) as pool:
         #     results = list(tqdm(pool.imap(process_func, chunks), total=len(chunks)))
@@ -510,6 +551,7 @@ def main():
         logger.info(f"  - Preprocessing: {preprocess_duration:.2f}s")
         logger.info(f"  - Match processing: {matching_duration:.2f}s")
         logger.info(f"  - Saving results: {save_duration:.2f}s")
+        logger.info(f"POI type: {poi_type}")
         logger.info(f"OSM features processed: {len(osm_layer):,}")
         logger.info(f"Overture features indexed: {len(overture_layer):,}")
         logger.info(f"Total matches found: {len(all_matches):,}")

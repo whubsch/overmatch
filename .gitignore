@@ -61,3 +61,4 @@ scripts/test*.py
 node_modules
 *.log
 logs
+data/

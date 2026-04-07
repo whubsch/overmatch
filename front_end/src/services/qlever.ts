@@ -134,13 +134,28 @@ PREFIX geo: <http://www.opengis.net/ont/geosparql#>
 PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
 SELECT ?id ?name ?centroid WHERE {
   osmrel:${relationId} ogc:sfIntersects ?id .
-  VALUES ?amenity_types {
-    "restaurant" "bar" "pub" "fast_food" "cafe"
-  }
-  ?id osmkey:amenity ?amenity_types .
   ?id osmkey:name ?name .
   ?id geo:hasGeometry/geo:asWKT ?geometry .
   BIND(geof:centroid(?geometry) AS ?centroid)
+  FILTER NOT EXISTS { ?id osmkey:brand:wikidata ?wikidata . }
+  {
+    VALUES ?amenity_types {
+      "restaurant" "bar" "pub" "fast_food" "cafe"
+    }
+    ?id osmkey:amenity ?amenity_types .
+  }
+  UNION
+  {
+    ?id osmkey:shop "beauty" .
+    ?id osmkey:beauty "nails" .
+  }
+  UNION
+  {
+    VALUES ?tourism_types {
+      "hotel" "motel" "hostel" "resort"
+    }
+    ?id osmkey:tourism ?tourism_types .
+  }
 }
 `;
 

@@ -234,6 +234,25 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
     }
   };
 
+  const linkTags = [
+    "website",
+    "url",
+    "contact:website",
+    "contact:facebook",
+    "operator:website",
+    "contact:website",
+    "brand:website",
+    "source:website",
+    "memorial:website",
+    "network:website",
+    "website:menu",
+    "source:url",
+  ];
+
+  const isLinkTag = (key: string): boolean => {
+    return linkTags.includes(key);
+  };
+
   const linkButton = (href?: string) => (
     <div className="flex flex-row items-center gap-2">
       {href}
@@ -335,14 +354,14 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
                       {comparison.key}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
-                      {comparison.key === "website" && comparison.osmValue
+                      {isLinkTag(comparison.key) && comparison.osmValue
                         ? linkButton(comparison.osmValue)
                         : comparison.osmValue || (
                             <span className="text-gray-400">-</span>
                           )}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
-                      {comparison.key === "website" && overtureValue
+                      {isLinkTag(comparison.key) && overtureValue
                         ? linkButton(overtureValue)
                         : overtureValue || (
                             <span className="text-gray-400">-</span>
