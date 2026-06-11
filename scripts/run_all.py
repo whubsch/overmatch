@@ -74,7 +74,7 @@ def main():
         if not run_script(script):
             print(f"\n{'=' * 60}")
             print(f"Execution stopped at script {i}/{len(scripts)}")
-            print(f"Failed script: {script}")
+            print(f"Failed script: {' '.join(script)}")
             print("=" * 60)
             sys.exit(1)
 

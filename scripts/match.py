@@ -283,7 +283,9 @@ def find_matches_for_point(
             if "names" in candidate_dict:
                 candidate_dict["names"]["rules"] = None
             if "brand" in candidate_dict and "names" in candidate_dict.get("brand", {}):
-                candidate_dict["brand"]["rules"] = None
+                candidate_dict["brand"]["names"]["rules"] = None
+                if candidate_dict["brand"]["names"].get("primary") is None:
+                    del candidate_dict["brand"]
 
             # Bad data handling
             # basic_category missing from data
@@ -292,10 +294,12 @@ def find_matches_for_point(
             # update_time doesn't conform to regex
             if "sources" in candidate_dict:
                 for source in candidate_dict["sources"]:
-                    if "00:00:00.000" in source.get("update_time"):
-                        source["update_time"] = source["update_time"].replace(
-                            "00.000", "00Z"
-                        )
+                    update_time = source.get("update_time", "")
+                    if "00:00:00.000" in update_time:
+                        update_time = update_time.replace("00.000", "00Z")
+                    while update_time.endswith("ZZ"):
+                        update_time = update_time[:-1]
+                    source["update_time"] = update_time
 
             candidate_tags = overturetoosm.process_place(candidate_dict)
 
