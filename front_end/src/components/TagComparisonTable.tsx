@@ -14,6 +14,7 @@ import { Alert } from "@heroui/alert";
 import { Progress } from "@heroui/progress";
 import { Checkbox } from "@heroui/checkbox";
 import { Link } from "@heroui/link";
+import { Tooltip } from "@heroui/tooltip";
 import { Tags } from "../objects";
 import { MatchInfo } from "../types/matching";
 import { Divider } from "@heroui/react";
@@ -79,6 +80,8 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   // Track whether match details are expanded
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  // Track which link-tag URLs have been opened (unlocking the checkbox)
+  const [visitedLinks, setVisitedLinks] = useState<Set<string>>(new Set());
 
   // Merge all matches with priority to the closest one (by distance)
   const mergedOvertureTags = useMemo(() => {
@@ -203,6 +206,7 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
     });
 
     setSelectedTags(defaultSelected);
+    setVisitedLinks(new Set());
   }, [tagComparisons]);
 
   const handleTagToggle = (key: string) => {
@@ -253,7 +257,7 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
     return linkTags.includes(key);
   };
 
-  const linkButton = (href?: string) => (
+  const linkButton = (href?: string, tagKey?: string) => (
     <div className="flex flex-row items-center gap-2">
       {href}
       <Button
@@ -265,6 +269,11 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
         radius="full"
         isIconOnly
         showAnchorIcon
+        onPress={() => {
+          if (tagKey) {
+            setVisitedLinks((prev) => new Set(prev).add(tagKey));
+          }
+        }}
       />
     </div>
   );
@@ -317,10 +326,10 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
           <TableHeader>
             <TableColumn>APPLY</TableColumn>
             <TableColumn>KEY</TableColumn>
-            <TableColumn>OSM VALUE</TableColumn>
             <TableColumn>
               OVERTURE VALUE{matches.length > 1 ? " (MERGED)" : ""}
             </TableColumn>
+            <TableColumn>OSM VALUE</TableColumn>
             <TableColumn>STATUS</TableColumn>
           </TableHeader>
           <TableBody>
@@ -341,11 +350,38 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
                   <TableRow key={comparison.key}>
                     <TableCell>
                       {canApply ? (
-                        <Checkbox
-                          isSelected={selectedTags.has(comparison.key)}
-                          onValueChange={() => handleTagToggle(comparison.key)}
-                          size="sm"
-                        />
+                        isLinkTag(comparison.key) &&
+                        !visitedLinks.has(comparison.key) ? (
+                          <Tooltip
+                            content="Click the Overture link to preview it before adding this tag"
+                            placement="right"
+                            size="sm"
+                          >
+                            <span className="text-gray-400 flex items-center cursor-help">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                width="16"
+                                height="16"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          <Checkbox
+                            isSelected={selectedTags.has(comparison.key)}
+                            onValueChange={() =>
+                              handleTagToggle(comparison.key)
+                            }
+                            size="sm"
+                          />
+                        )
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -354,16 +390,16 @@ const TagComparisonTable: React.FC<TagComparisonTableProps> = ({
                       {comparison.key}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
-                      {isLinkTag(comparison.key) && comparison.osmValue
-                        ? linkButton(comparison.osmValue)
-                        : comparison.osmValue || (
+                      {isLinkTag(comparison.key) && overtureValue
+                        ? linkButton(overtureValue, comparison.key)
+                        : overtureValue || (
                             <span className="text-gray-400">-</span>
                           )}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
-                      {isLinkTag(comparison.key) && overtureValue
-                        ? linkButton(overtureValue)
-                        : overtureValue || (
+                      {isLinkTag(comparison.key) && comparison.osmValue
+                        ? linkButton(comparison.osmValue)
+                        : comparison.osmValue || (
                             <span className="text-gray-400">-</span>
                           )}
                     </TableCell>
