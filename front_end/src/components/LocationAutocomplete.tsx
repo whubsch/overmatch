@@ -106,11 +106,14 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   const generateLocationDescription = (feature: LocationFeature): string => {
     const { state, county, osm_value } = feature.properties;
-    const osmLabel = OSM_VALUES_WITH_AREA_SUFFIX.includes(osm_value)
+    let osmLabel = OSM_VALUES_WITH_AREA_SUFFIX.includes(osm_value)
       ? `${osm_value.replaceAll("_", " ")} area`
       : osm_value.replaceAll("_", " ");
+    if (osmLabel === "census") {
+      osmLabel = "census-designated place";
+    }
     if (state && county) {
-      return `${osmLabel} in ${county}, ${state}`;
+      return `${osmLabel} in ${county} County, ${state}`;
     } else if (state) {
       return `${osmLabel} in ${state}`;
     } else {
@@ -215,10 +218,16 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           suggestions.map((feature, index) => (
             <AutocompleteItem
               key={index}
-              title={feature.properties.name}
+              title={
+                feature.properties.osm_value === "county"
+                  ? `${feature.properties.name} County`
+                  : feature.properties.name
+              }
               description={generateLocationDescription(feature)}
             >
-              {feature.properties.name}
+              {feature.properties.osm_value === "county"
+                ? `${feature.properties.name} County`
+                : feature.properties.name}
             </AutocompleteItem>
           ))
         )}
